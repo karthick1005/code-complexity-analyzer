@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Code Complexity Analyzer",
+  "version": "1.0.0",
+  "description": "Analyze time and space complexity of your code on LeetCode, HackerRank, and more.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://leetcode.com/*",
+    "https://*.hackerrank.com/*",
+    "https://daleseo-bigocalc.web.val.run/*"
+  ],
+  "action": {
+    "default_title": "Code Complexity Analyzer"
+  },
+  "commands": {
+    "analyze-code": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+C",
+        "mac": "Ctrl+Shift+C"
+      },
+      "description": "Analyze code complexity"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://leetcode.com/*",
+        "https://*.hackerrank.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

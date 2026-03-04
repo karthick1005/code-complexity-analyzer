@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Complexity Analyzer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1>⚙️ Complexity Analyzer</h1>
+                <p class="subtitle">Analyze code complexity on LeetCode & HackerRank</p>
+            </div>
+            <button class="close-btn" id="closeBtn" aria-label="Close popup">&times;</button>
+        </div>
+
+        <div id="initial" class="initial">
+            <div class="initial-content">
+                <div class="initial-icon">🔍</div>
+                <p class="info-text">Ready to analyze</p>
+                <p class="info-subtext">Click the button below to analyze the current code</p>
+                <button class="btn btn-primary btn-large" id="analyzeBtn">Analyze Code</button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Analyzing code...</p>
+        </div>
+
+        <div id="results" class="results hidden">
+            <div class="results-content">
+                <div class="complexity-grid">
+                    <div class="complexity-card time-card">
+                        <div class="complexity-header">
+                            <span class="complexity-icon">⏱️</span>
+                            <h3>Time Complexity</h3>
+                        </div>
+                        <p class="complexity-value" id="timeComplexity">—</p>
+                    </div>
+                    <div class="complexity-card space-card">
+                        <div class="complexity-header">
+                            <span class="complexity-icon">💾</span>
+                            <h3>Space Complexity</h3>
+                        </div>
+                        <p class="complexity-value" id="spaceComplexity">—</p>
+                    </div>
+                </div>
+
+                <div class="explanation-section" id="explanationSection">
+                    <button class="explanation-toggle-btn" id="toggleExplanation" aria-expanded="false">
+                        Details <span class="toggle-icon">▼</span>
+                    </button>
+                    <div class="explanation-content hidden" id="explanationContent">
+                        <p class="explanation-text" id="detailedExplanation"></p>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary" id="analyzeAgain">Analyze Another Code</button>
+            </div>
+        </div>
+
+        <div id="error" class="error hidden">
+            <div class="error-icon">❌</div>
+            <p class="error-text" id="errorMessage">An error occurred</p>
+            <button class="btn btn-primary" id="retryBtn">Try Again</button>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
