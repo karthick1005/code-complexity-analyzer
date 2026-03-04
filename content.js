@@ -372,6 +372,29 @@ function injectModalStyles() {
             display: none !important;
         }
         
+        .code-analyzer-api-section {
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .code-analyzer-api-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .code-analyzer-api-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 16px 0;
+            padding: 10px 12px;
+            background: var(--bg-light);
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+        }
+        
         @media (max-width: 640px) {
             .code-analyzer-modal {
                 width: 95vw;
@@ -434,29 +457,56 @@ function createModalHTML() {
                 </div>
                 
                 <div id="code-analyzer-results" class="code-analyzer-results code-analyzer-hidden">
-                    <div class="code-analyzer-complexity-grid">
-                        <div class="code-analyzer-complexity-card time-card">
-                            <div class="code-analyzer-complexity-header">
-                                <span class="code-analyzer-complexity-icon">⏱️</span>
-                                <h3>Time Complexity</h3>
+                    <!-- BigOCalc Analysis Section -->
+                    <div class="code-analyzer-api-section">
+                        <h2 class="code-analyzer-api-title">🧮 BigOCalc Analysis</h2>
+                        <div class="code-analyzer-complexity-grid">
+                            <div class="code-analyzer-complexity-card time-card">
+                                <div class="code-analyzer-complexity-header">
+                                    <span class="code-analyzer-complexity-icon">⏱️</span>
+                                    <h3>Time Complexity</h3>
+                                </div>
+                                <p class="code-analyzer-complexity-value" id="code-analyzer-bigocal-time">—</p>
                             </div>
-                            <p class="code-analyzer-complexity-value" id="code-analyzer-time-complexity">—</p>
+                            <div class="code-analyzer-complexity-card space-card">
+                                <div class="code-analyzer-complexity-header">
+                                    <span class="code-analyzer-complexity-icon">💾</span>
+                                    <h3>Space Complexity</h3>
+                                </div>
+                                <p class="code-analyzer-complexity-value" id="code-analyzer-bigocal-space">—</p>
+                            </div>
                         </div>
-                        <div class="code-analyzer-complexity-card space-card">
-                            <div class="code-analyzer-complexity-header">
-                                <span class="code-analyzer-complexity-icon">💾</span>
-                                <h3>Space Complexity</h3>
+                        
+                        <div class="code-analyzer-explanation-section">
+                            <button class="code-analyzer-explanation-toggle-btn" id="code-analyzer-bigocal-toggle-btn" aria-expanded="false">
+                                Detailed Explanation <span class="code-analyzer-toggle-icon">▼</span>
+                            </button>
+                            <div class="code-analyzer-explanation-content" id="code-analyzer-bigocal-explanation-content">
+                                <p class="code-analyzer-explanation-text" id="code-analyzer-bigocal-explanation"></p>
                             </div>
-                            <p class="code-analyzer-complexity-value" id="code-analyzer-space-complexity">—</p>
                         </div>
                     </div>
                     
-                    <div class="code-analyzer-explanation-section">
-                        <button class="code-analyzer-explanation-toggle-btn" id="code-analyzer-toggle-btn" aria-expanded="false">
-                            Details <span class="code-analyzer-toggle-icon">▼</span>
-                        </button>
-                        <div class="code-analyzer-explanation-content" id="code-analyzer-explanation-content">
-                            <p class="code-analyzer-explanation-text" id="code-analyzer-explanation-text"></p>
+                    <!-- TimeComplexity Analysis Section -->
+                    <div class="code-analyzer-api-section">
+                        <h2 class="code-analyzer-api-title">⏲️ TimeComplexity.ai Analysis</h2>
+                        <div class="code-analyzer-complexity-grid">
+                            <div class="code-analyzer-complexity-card time-card" style="grid-column: 1 / -1;">
+                                <div class="code-analyzer-complexity-header">
+                                    <span class="code-analyzer-complexity-icon">⏱️</span>
+                                    <h3>Time Complexity</h3>
+                                </div>
+                                <p class="code-analyzer-complexity-value" id="code-analyzer-timecomplexity-time">—</p>
+                            </div>
+                        </div>
+                        
+                        <div class="code-analyzer-explanation-section">
+                            <button class="code-analyzer-explanation-toggle-btn" id="code-analyzer-timecomplexity-toggle-btn" aria-expanded="false">
+                                Reasoning <span class="code-analyzer-toggle-icon">▼</span>
+                            </button>
+                            <div class="code-analyzer-explanation-content" id="code-analyzer-timecomplexity-explanation-content">
+                                <p class="code-analyzer-explanation-text" id="code-analyzer-timecomplexity-reasoning"></p>
+                            </div>
                         </div>
                     </div>
                     
@@ -485,7 +535,15 @@ function showModal() {
         // Attach event listeners
         document.getElementById('code-analyzer-close-btn').addEventListener('click', closeModal);
         document.querySelector('.code-analyzer-modal-overlay').addEventListener('click', closeModal);
-        document.getElementById('code-analyzer-toggle-btn').addEventListener('click', toggleModalExplanation);
+        
+        // Toggle buttons for both APIs
+        document.getElementById('code-analyzer-bigocal-toggle-btn').addEventListener('click', () => {
+            toggleModalExplanation('code-analyzer-bigocal-toggle-btn', 'code-analyzer-bigocal-explanation-content');
+        });
+        document.getElementById('code-analyzer-timecomplexity-toggle-btn').addEventListener('click', () => {
+            toggleModalExplanation('code-analyzer-timecomplexity-toggle-btn', 'code-analyzer-timecomplexity-explanation-content');
+        });
+        
         document.getElementById('code-analyzer-analyze-again').addEventListener('click', closeModal);
         document.getElementById('code-analyzer-retry-btn').addEventListener('click', analyzeModalCode);
         
@@ -502,9 +560,9 @@ function closeModal() {
     log('Modal closed');
 }
 
-function toggleModalExplanation() {
-    const content = document.getElementById('code-analyzer-explanation-content');
-    const btn = document.getElementById('code-analyzer-toggle-btn');
+function toggleModalExplanation(toggleBtnId, contentId) {
+    const content = document.getElementById(contentId);
+    const btn = document.getElementById(toggleBtnId);
     
     if (content.classList.contains('show')) {
         content.classList.remove('show');
@@ -522,17 +580,24 @@ function showModalLoading() {
 }
 
 function showModalResults(data) {
-    document.getElementById('code-analyzer-time-complexity').textContent = data.time || '—';
-    document.getElementById('code-analyzer-space-complexity').textContent = data.space || '—';
-    document.getElementById('code-analyzer-explanation-text').textContent = data.explanation || '';
+    // Display BigOCalc results
+    document.getElementById('code-analyzer-bigocal-time').textContent = data.bigocalData.time || '—';
+    document.getElementById('code-analyzer-bigocal-space').textContent = data.bigocalData.space || '—';
+    document.getElementById('code-analyzer-bigocal-explanation').textContent = data.bigocalData.explanation || '';
+    
+    // Display TimeComplexity results
+    document.getElementById('code-analyzer-timecomplexity-time').textContent = data.timecomplexityData.time || '—';
+    document.getElementById('code-analyzer-timecomplexity-reasoning').textContent = data.timecomplexityData.reasoning || '';
     
     document.getElementById('code-analyzer-loading').classList.add('code-analyzer-hidden');
     document.getElementById('code-analyzer-results').classList.remove('code-analyzer-hidden');
     document.getElementById('code-analyzer-error').classList.add('code-analyzer-hidden');
     
-    // Reset explanation toggle
-    document.getElementById('code-analyzer-explanation-content').classList.remove('show');
-    document.getElementById('code-analyzer-toggle-btn').setAttribute('aria-expanded', 'false');
+    // Reset explanation toggles
+    document.getElementById('code-analyzer-bigocal-explanation-content').classList.remove('show');
+    document.getElementById('code-analyzer-bigocal-toggle-btn').setAttribute('aria-expanded', 'false');
+    document.getElementById('code-analyzer-timecomplexity-explanation-content').classList.remove('show');
+    document.getElementById('code-analyzer-timecomplexity-toggle-btn').setAttribute('aria-expanded', 'false');
 }
 
 function showModalError(message) {
@@ -554,8 +619,8 @@ async function analyzeModalCode() {
     
     try {
         const response = await analyzeCodeViaAPI(code);
-        const { time, space, explanation } = extractComplexityData(response);
-        showModalResults({ time, space, explanation });
+        const { bigocalData, timecomplexityData } = extractComplexityData(response);
+        showModalResults({ bigocalData, timecomplexityData });
     } catch (error) {
         logError('Analysis failed', error.message);
         showModalError(`Error: ${error.message}`);
@@ -565,46 +630,61 @@ async function analyzeModalCode() {
 function extractComplexityData(response) {
     log('Extracting complexity data from response', response);
     
-    let explanation = '';
-    let time = 'Unknown';
-    let space = 'Unknown';
+    const bigocalData = {
+        time: 'Unknown',
+        space: 'Unknown',
+        explanation: ''
+    };
     
-    // Handle both response.result and response.data.result formats
-    const resultText = response?.data?.result || response?.result;
+    const timecomplexityData = {
+        time: 'Unknown',
+        reasoning: ''
+    };
     
-    if (resultText) {
-        explanation = resultText;
-        log('Explanation text extracted, length:', explanation.length);
+    // Extract data from BigOCalc API response
+    if (response.bigocal) {
+        log('[BigOCalc] Processing response...');
+        const resultText = response.bigocal?.data?.result || response.bigocal?.result;
         
-        // Extract Time Complexity section and find the O(...) notation
-        const timeSection = explanation.match(/Time Complexity[:\s]+([^]*?)(?=Space Complexity|In summary|$)/i);
-        if (timeSection) {
-            const timeText = timeSection[1];
-            // Look for O(...) pattern
-            const timeMatch = timeText.match(/O\([^)]*\)/);
-            if (timeMatch) {
-                time = timeMatch[0].trim();
+        if (resultText) {
+            bigocalData.explanation = resultText;
+            log('[BigOCalc] Explanation extracted, length:', bigocalData.explanation.length);
+            
+            // Extract Time Complexity from BigOCalc explanation
+            const timeSection = bigocalData.explanation.match(/Time Complexity[:\s]+([^]*?)(?=Space Complexity|In summary|$)/i);
+            if (timeSection) {
+                const timeText = timeSection[1];
+                const timeMatch = timeText.match(/O\([^)]*\)/);
+                if (timeMatch) {
+                    bigocalData.time = timeMatch[0].trim();
+                }
             }
-        }
-        log('Time complexity found:', time);
-        
-        // Extract Space Complexity section and find the O(...) notation
-        const spaceSection = explanation.match(/Space Complexity[:\s]+([^]*?)(?=In summary|$)/i);
-        if (spaceSection) {
-            const spaceText = spaceSection[1];
-            // Look for O(...) pattern
-            const spaceMatch = spaceText.match(/O\([^)]*\)/);
-            if (spaceMatch) {
-                space = spaceMatch[0].trim();
+            
+            // Extract Space Complexity from BigOCalc explanation
+            const spaceSection = bigocalData.explanation.match(/Space Complexity[:\s]+([^]*?)(?=In summary|$)/i);
+            if (spaceSection) {
+                const spaceText = spaceSection[1];
+                const spaceMatch = spaceText.match(/O\([^)]*\)/);
+                if (spaceMatch) {
+                    bigocalData.space = spaceMatch[0].trim();
+                }
             }
+            
+            log('[BigOCalc] Extracted:', bigocalData);
         }
-        log('Space complexity found:', space);
-    } else {
-        log('No result found in response');
     }
     
-    log('Extracted data:', { time, space, explanationLength: explanation.length });
-    return { time, space, explanation };
+    // Extract data from TimeComplexity API response
+    if (response.timecomplexity) {
+        log('[TimeComplexity] Processing response...');
+        timecomplexityData.time = response.timecomplexity.timeComplexity || 'Unknown';
+        timecomplexityData.reasoning = response.timecomplexity.reasoning || '';
+        
+        log('[TimeComplexity] Extracted:', timecomplexityData);
+    }
+    
+    log('Final extracted data:', { bigocalData, timecomplexityData });
+    return { bigocalData, timecomplexityData };
 }
 
 /**
@@ -909,11 +989,12 @@ async function analyzeCodeViaAPI(code) {
     // IMPORTANT: Replace this with your proxy server URL
     // Examples:
     // - Local development: http://localhost:3000
-    // - Railway (Production): https://your-app-name.railway.app
-    // - Render: https://your-app-name.onrender.com
+    // - Render (Production): https://your-app-name.onrender.com
+    // - Railway: https://your-app-name.railway.app
     // 
     // See RAILWAY_DEPLOYMENT.md for full deployment instructions
-    const PROXY_SERVER = 'http://localhost:3000';
+    const PROXY_SERVER = 'https://code-complexity-analyzer-88as.onrender.com';
+    // const PROXY_SERVER = 'http://localhost:3000';
     const PROXY_ENDPOINT = PROXY_SERVER + '/analyze';
     
     try {
@@ -946,11 +1027,14 @@ async function analyzeCodeViaAPI(code) {
         const data = await response.json();
         log('[API] JSON parsed successfully:', data);
         
-        if (data.success && data.data) {
+        if (data.success) {
             log('[API] Analysis successful via proxy server');
+            // Return the full response containing both API results
             return {
                 success: true,
-                data: data.data
+                bigocal: data.bigocal,
+                timecomplexity: data.timecomplexity,
+                errors: data.errors || []
             };
         } else {
             throw new Error(data.error || 'Unknown error from proxy server');
