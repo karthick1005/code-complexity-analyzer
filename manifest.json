@@ -36,5 +36,11 @@
       "js": ["content.js"],
       "run_at": "document_start"
     }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["monaco-bridge.js"],
+      "matches": ["https://leetcode.com/*", "https://*.hackerrank.com/*"]
+    }
   ]
 }

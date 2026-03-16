@@ -24,6 +24,44 @@ log('Content script initialized on URL:', window.location.href);
 log('Content script loaded at:', new Date().toLocaleTimeString());
 log('Waiting for messages from popup...');
 
+// Use messaging to request Monaco code from main world
+window.__monacoCode = null;
+
+function requestMonacoCode() {
+    return new Promise((resolve) => {
+        window.addEventListener('__monacoCodeResponse', (event) => {
+            if (event.detail && event.detail.code !== undefined) {
+                window.__monacoCode = event.detail.code;
+                log('[Monaco] Code received via message:', event.detail.code ? event.detail.code.length : 0, 'chars');
+                resolve(event.detail.code);
+            }
+        }, { once: true });
+        
+        window.dispatchEvent(new CustomEvent('__monacoCodeRequest'));
+    });
+}
+
+// Inject bridge script - use external injection to avoid CSP issues
+function injectMonacoBridge() {
+    const script = document.createElement('script');
+    // Set an ID to ensure we only inject once
+    script.id = '__monaco-bridge-script';
+    script.type = 'text/javascript';
+    // Use a data URL or external reference - avoid inline script text
+    script.src = chrome.runtime.getURL('monaco-bridge.js');
+    document.documentElement.appendChild(script);
+    log('Monaco bridge script injected');
+}
+
+// Inject bridge on startup
+try {
+    if (!document.getElementById('__monaco-bridge-script')) {
+        injectMonacoBridge();
+    }
+} catch (error) {
+    logError('Failed to inject Monaco bridge:', error);
+}
+
 // Create modal overlay styles on page load
 function injectModalStyles() {
     if (document.getElementById('code-analyzer-styles')) {
@@ -611,7 +649,7 @@ async function analyzeModalCode() {
     showModal();
     showModalLoading();
     
-    const code = extractCode();
+    const code = await extractCode();
     if (!code) {
         showModalError('Could not extract code from this page. Make sure you are on LeetCode or HackerRank.');
         return;
@@ -692,7 +730,7 @@ function extractComplexityData(response) {
  * Supports LeetCode, HackerRank, and other platforms
  * @returns {string|null} Extracted code or null if not found
  */
-function extractCode() {
+async function extractCode() {
     log('=== Starting code extraction ===');
     
     // Try LeetCode Monaco editor first
@@ -700,7 +738,7 @@ function extractCode() {
     const monacoEditor = document.querySelector('.monaco-editor');
     if (monacoEditor) {
         log('Monaco editor found! Attempting to extract...');
-        const code = extractLeetCodeCode();
+        const code = await extractLeetCodeCode();
         if (code) {
             log('LeetCode extraction successful! Code length:', code.length);
             return code;
@@ -757,7 +795,7 @@ function extractCode() {
  * Extract code from LeetCode's Monaco editor
  * @returns {string|null} Code from LeetCode editor or null
  */
-function extractLeetCodeCode() {
+async function extractLeetCodeCode() {
     try {
         log('[LeetCode] Starting extraction...');
         const monacoEditor = document.querySelector('.monaco-editor');
@@ -765,23 +803,27 @@ function extractLeetCodeCode() {
             log('[LeetCode] Monaco editor element not found');
             return null;
         }
-
-        // Try to access Monaco's editor instance
-        if (window.monaco && window.monaco.editor) {
-            log('[LeetCode] Accessing Monaco global instance...');
-            const editors = window.monaco.editor.getEditors();
-            log('[LeetCode] Found', editors.length, 'editor instances');
-            if (editors.length > 0) {
-                const code = editors[0].getValue();
-                log('[LeetCode] Code extracted from Monaco instance, length:', code.length);
-                return code || null;
+        
+        // Try to get Monaco code via bridge (with timeout)
+        log('[LeetCode] Requesting Monaco code from bridge...');
+        try {
+            const monacoCode = await Promise.race([
+                requestMonacoCode(),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Monaco bridge timeout')), 2000)
+                )
+            ]);
+            
+            if (monacoCode) {
+                log('[LeetCode] Monaco code retrieved successfully, length:', monacoCode.length);
+                return monacoCode;
             }
-        } else {
-            log('[LeetCode] window.monaco not available');
+        } catch (bridgeError) {
+            log('[LeetCode] Monaco bridge failed or timed out:', bridgeError.message);
         }
-
-        // Fallback: Extract text content from the editor
-        log('[LeetCode] Trying DOM-based extraction...');
+        
+        // Fallback: Extract text content from the editor DOM
+        log('[LeetCode] Falling back to DOM-based extraction...');
         const editorContent = document.querySelector('.view-lines');
         if (editorContent) {
             let code = '';
@@ -791,8 +833,10 @@ function extractLeetCodeCode() {
                 code += line.textContent + '\n';
             });
             const trimmedCode = code.trim();
-            log('[LeetCode] DOM-based extraction successful, length:', trimmedCode.length);
-            return trimmedCode || null;
+            if (trimmedCode) {
+                log('[LeetCode] DOM-based extraction successful, length:', trimmedCode.length);
+                return trimmedCode;
+            }
         } else {
             log('[LeetCode] .view-lines not found');
         }
@@ -921,17 +965,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'extractCode') {
         try {
             log('Processing "extractCode" request...');
-            const code = extractCode();
+            extractCode().then(code => {
+                if (code) {
+                    log('Successfully extracted code, length:', code.length);
+                    log('Sending response to popup with code');
+                    sendResponse({ code: code });
+                } else {
+                    logError('Failed to extract code');
+                    log('Sending error response to popup');
+                    sendResponse({ error: 'Unable to extract code from the editor.' });
+                }
+            }).catch(error => {
+                logError('Exception during code extraction:', error);
+                sendResponse({ error: 'Error extracting code.' });
+            });
             
-            if (code) {
-                log('Successfully extracted code, length:', code.length);
-                log('Sending response to popup with code');
-                sendResponse({ code: code });
-            } else {
-                logError('Failed to extract code');
-                log('Sending error response to popup');
-                sendResponse({ error: 'Unable to extract code from the editor.' });
-            }
+            // Return true to indicate we'll send response asynchronously
+            return true;
         } catch (error) {
             logError('Exception in message listener:', error);
             log('Sending error response to popup');
